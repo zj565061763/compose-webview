@@ -81,6 +81,7 @@ fun FWebView(
         AndroidView(
             factory = { context ->
                 (factory?.invoke(context) ?: WebView(context)).apply {
+                    state.webView = this
                     onCreated(this)
 
                     // WebView changes it's layout strategy based on
@@ -110,22 +111,7 @@ fun FWebView(
             // AndroidViews are not supported by preview, bail early
             if (runningInPreview) return@AndroidView
 
-            state.content?.let { content ->
-                when (content) {
-                    is WebContent.Url -> {
-                        val url = content.url
-
-                        if (url.isNotEmpty() && url != view.url) {
-                            view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
-                        }
-                    }
-
-                    is WebContent.Data -> {
-                        view.loadDataWithBaseURL(content.baseUrl, content.data, null, "utf-8", null)
-                    }
-                }
-            }
-
+            state.update(view)
             navigator.canGoBack = view.canGoBack()
             navigator.canGoForward = view.canGoForward()
         }

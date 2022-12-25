@@ -12,7 +12,28 @@ fun rememberFWebViewState(): FWebViewState {
 }
 
 open class FWebViewState : WebViewState() {
-    internal var webView: WebView? = null
+    var webView: WebView? = null
+        internal set
+
+    open fun update(view: WebView) {
+        webView = view
+        loadContent(view)
+    }
+
+    private fun loadContent(view: WebView) {
+        val content = content ?: return
+        when (content) {
+            is WebContent.Url -> {
+                val url = content.url
+                if (url.isNotEmpty() && url != view.url) {
+                    view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
+                }
+            }
+            is WebContent.Data -> {
+                view.loadDataWithBaseURL(content.baseUrl, content.data, null, "utf-8", null)
+            }
+        }
+    }
 
     fun loadUrl(
         url: String,
