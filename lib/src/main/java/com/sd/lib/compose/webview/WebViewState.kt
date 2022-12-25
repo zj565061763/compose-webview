@@ -15,8 +15,9 @@ open class FWebViewState : WebViewState() {
     var webView: WebView? = null
         internal set
 
-    open fun update(view: WebView) {
+    internal fun update(view: WebView) {
         webView = view
+        onUpdate(view)
         loadContent(view)
     }
 
@@ -75,4 +76,6 @@ open class FWebViewState : WebViewState() {
     fun evaluateJavascript(script: String, callback: ValueCallback<String?>? = null) {
         webView?.evaluateJavascript(script, callback)
     }
+
+    protected open fun onUpdate(view: WebView) {}
 }
