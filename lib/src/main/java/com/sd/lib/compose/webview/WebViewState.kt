@@ -11,7 +11,7 @@ fun rememberFWebViewState(): FWebViewState {
     return remember { FWebViewState() }
 }
 
-class FWebViewState internal constructor() : WebViewState() {
+open class FWebViewState : WebViewState() {
     internal var webView: WebView? = null
 
     fun loadUrl(
