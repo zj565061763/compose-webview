@@ -1,0 +1,7 @@
+<resources>
+
+    <string name="lib_compose_webview_continue">继续</string>
+    <string name="lib_compose_webview_cancel">取消</string>
+    <string name="lib_compose_webview_tips_onReceivedSslError">SSL认证失败，是否继续访问？</string>
+
+</resources>
