@@ -38,7 +38,7 @@ private fun Content() {
     val state = rememberFWebViewState()
 
     LaunchedEffect(state) {
-        state.loadUrl("https://github.com/")
+        state.loadUrl("https://www.baidu.com")
     }
 
     Scaffold(
