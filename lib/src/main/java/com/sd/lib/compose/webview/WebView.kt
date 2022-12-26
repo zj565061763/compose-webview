@@ -189,11 +189,9 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
 
         // Override all url loads to make the single source of truth
         // of the URL the state holder Url
-        request.let {
-            val content = state.content
-            if (content != null) {
-                state.content = content.withUrl(it.url.toString())
-            }
+        val content = state.content
+        if (content != null) {
+            state.content = content.withUrl(request.url.toString())
         }
         return true
     }

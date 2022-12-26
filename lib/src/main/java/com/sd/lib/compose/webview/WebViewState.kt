@@ -18,20 +18,17 @@ open class FWebViewState : WebViewState() {
     internal fun update(view: WebView) {
         webView = view
         onUpdate(view)
-        loadContent(view)
-    }
-
-    private fun loadContent(view: WebView) {
-        val content = content ?: return
-        when (content) {
-            is WebContent.Url -> {
-                val url = content.url
-                if (url.isNotEmpty() && url != view.url) {
-                    view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
+        content?.let { content ->
+            when (content) {
+                is WebContent.Url -> {
+                    val url = content.url
+                    if (url.isNotEmpty() && url != view.url) {
+                        view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
+                    }
                 }
-            }
-            is WebContent.Data -> {
-                view.loadDataWithBaseURL(content.baseUrl, content.data, null, "utf-8", null)
+                is WebContent.Data -> {
+                    view.loadDataWithBaseURL(content.baseUrl, content.data, null, "utf-8", null)
+                }
             }
         }
     }
@@ -40,15 +37,23 @@ open class FWebViewState : WebViewState() {
         url: String,
         additionalHttpHeaders: Map<String, String>? = null,
     ) {
-        FWebViewManager.syncHttpClientCookieToWebView(url)
-        content = WebContent.Url(url, additionalHttpHeaders ?: emptyMap())
+        val content = WebContent.Url(url, additionalHttpHeaders ?: emptyMap())
+        loadContent(content)
     }
 
     fun loadDataWithBaseURL(
         data: String,
         baseUrl: String? = null,
     ) {
-        content = WebContent.Data(data, baseUrl)
+        val content = WebContent.Data(data, baseUrl)
+        loadContent(content)
+    }
+
+    fun loadContent(content: WebContent) {
+        if (content is WebContent.Url) {
+            FWebViewManager.syncHttpClientCookieToWebView(content.url)
+        }
+        this.content = content
     }
 
     fun evaluateJavascriptFunction(function: String, callback: ValueCallback<String?>? = null) {
