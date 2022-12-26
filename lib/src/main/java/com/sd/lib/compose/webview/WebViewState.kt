@@ -5,6 +5,7 @@ import android.webkit.WebView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.sd.lib.compose.webview.core.FWebViewManager
+import com.sd.lib.compose.webview.core.logMsg
 
 @Composable
 fun rememberFWebViewState(): FWebViewState {
@@ -23,6 +24,7 @@ open class FWebViewState : WebViewState() {
                 is WebContent.Url -> {
                     val url = content.url
                     if (url.isNotEmpty() && url != view.url) {
+                        logMsg { "loadUrl url:$url" }
                         view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
                     }
                 }
