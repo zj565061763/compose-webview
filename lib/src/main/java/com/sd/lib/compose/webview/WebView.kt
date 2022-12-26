@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
+import com.sd.lib.compose.webview.core.FWebViewManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -81,6 +82,7 @@ fun FWebView(
         AndroidView(
             factory = { context ->
                 (factory?.invoke(context) ?: WebView(context)).apply {
+                    FWebViewManager.initWebView(this)
                     state.webView = this
                     onCreated(this)
 
