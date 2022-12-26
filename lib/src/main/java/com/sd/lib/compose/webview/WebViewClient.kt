@@ -48,6 +48,8 @@ open class FWebViewClient : AccompanistWebViewClient() {
     }
 
     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+        logMsg { "doUpdateVisitedHistory url:$url" }
+        super.doUpdateVisitedHistory(view, url, isReload)
     }
 
     override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
