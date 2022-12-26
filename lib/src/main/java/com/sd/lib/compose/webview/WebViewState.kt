@@ -12,7 +12,7 @@ fun rememberFWebViewState(): FWebViewState {
     return remember { FWebViewState() }
 }
 
-open class FWebViewState : WebViewState() {
+open class FWebViewState : WebViewState(WebContent.Data("")) {
     var webView: WebView? = null
         internal set
 

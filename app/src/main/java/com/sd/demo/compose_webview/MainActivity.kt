@@ -18,6 +18,7 @@ import com.sd.demo.compose_webview.ui.theme.AppTheme
 import com.sd.lib.compose.webview.FWebView
 import com.sd.lib.compose.webview.LoadingState
 import com.sd.lib.compose.webview.rememberFWebViewState
+import com.sd.lib.compose.webview.rememberWebViewState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,11 +36,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Content() {
-    val state = rememberFWebViewState()
-
-    LaunchedEffect(state) {
-        state.loadUrl("https://www.baidu.com")
-    }
+    val state = rememberWebViewState("https://www.baidu.com")
 
     Scaffold(
         topBar = {
