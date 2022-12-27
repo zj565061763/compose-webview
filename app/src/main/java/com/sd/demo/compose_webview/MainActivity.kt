@@ -62,7 +62,9 @@ private fun Content() {
     ) {
         FWebView(
             state = state,
-            modifier = Modifier.padding(it),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it),
         )
     }
 }
