@@ -41,7 +41,7 @@ private fun Content() {
     Scaffold(
         topBar = {
             Column {
-                CenterAlignedTopAppBar(
+                TopAppBar(
                     title = { Text(text = state.pageTitle ?: "......") },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Red,
