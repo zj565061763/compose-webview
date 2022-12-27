@@ -287,7 +287,7 @@ sealed class LoadingState {
  * A state holder to hold the state for the WebView. In most cases this will be remembered
  * using the rememberWebViewState(uri) function.
  */
-open class WebViewState() {
+open class WebViewState internal constructor() {
     /**
      *  The content being loaded by the WebView
      */
