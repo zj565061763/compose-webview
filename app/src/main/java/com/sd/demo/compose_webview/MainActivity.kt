@@ -10,14 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.sd.demo.compose_webview.ui.theme.AppTheme
 import com.sd.lib.compose.webview.FWebView
 import com.sd.lib.compose.webview.LoadingState
-import com.sd.lib.compose.webview.rememberFWebViewState
+import com.sd.lib.compose.webview.rememberWebViewState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,10 +34,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Content() {
-    val state = rememberFWebViewState()
-
-    LaunchedEffect(state) {
-        state.loadUrl("https://www.baidu.com")
+    val state = rememberWebViewState {
+        loadUrl("https://www.baidu.com")
     }
 
     Scaffold(

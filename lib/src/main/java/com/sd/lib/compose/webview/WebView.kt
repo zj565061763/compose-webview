@@ -33,6 +33,7 @@ import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import com.sd.lib.compose.webview.LoadingState.Finished
 import com.sd.lib.compose.webview.LoadingState.Loading
+import com.sd.lib.compose.webview.core.FWebViewManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -287,7 +288,7 @@ sealed class LoadingState {
  * A state holder to hold the state for the WebView. In most cases this will be remembered
  * using the rememberWebViewState(uri) function.
  */
-open class WebViewState internal constructor() {
+open class WebViewState {
     /**
      *  The content being loaded by the WebView
      */
@@ -325,6 +326,29 @@ open class WebViewState internal constructor() {
      * For more fine grained control use the OnError callback of the WebView.
      */
     val errorsForCurrentRequest: SnapshotStateList<WebViewError> = mutableStateListOf()
+
+    fun loadUrl(
+        url: String,
+        additionalHttpHeaders: Map<String, String>? = null,
+    ) {
+        val content = WebContent.Url(url, additionalHttpHeaders ?: emptyMap())
+        loadContent(content)
+    }
+
+    fun loadDataWithBaseURL(
+        data: String,
+        baseUrl: String? = null,
+    ) {
+        val content = WebContent.Data(data, baseUrl)
+        loadContent(content)
+    }
+
+    fun loadContent(content: WebContent) {
+        if (content is WebContent.Url) {
+            FWebViewManager.syncHttpClientCookieToWebView(content.url)
+        }
+        this.content = content
+    }
 }
 
 /**
@@ -416,3 +440,12 @@ data class WebViewError(
      */
     val error: WebResourceErrorCompat
 )
+
+@Composable
+fun rememberWebViewState(apply: (WebViewState.() -> Unit)? = null): WebViewState {
+    return remember {
+        WebViewState().also {
+            apply?.invoke(it)
+        }
+    }
+}
