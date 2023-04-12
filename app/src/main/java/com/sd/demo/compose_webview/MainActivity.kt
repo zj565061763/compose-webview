@@ -23,9 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Content()
-                }
+                Content()
             }
         }
     }
