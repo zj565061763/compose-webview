@@ -22,19 +22,22 @@ import android.view.ViewGroup.LayoutParams
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
+import com.sd.lib.compose.webview.LoadingState.Finished
+import com.sd.lib.compose.webview.LoadingState.Loading
 import com.sd.lib.compose.webview.core.FWebViewManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -60,9 +63,33 @@ fun FWebView(
         with(navigator) { webView?.handleNavigationEvents() }
     }
 
+    LaunchedEffect(webView, state) {
+        if (webView == null) return@LaunchedEffect
+
+        snapshotFlow { state.content }
+            .filterNotNull()
+            .collect { content ->
+                when (content) {
+                    is WebContent.Url -> {
+                        webView?.loadUrl(content.url, content.additionalHttpHeaders)
+                    }
+
+                    is WebContent.Data -> {
+                        webView?.loadDataWithBaseURL(
+                            content.baseUrl,
+                            content.data,
+                            content.mimeType,
+                            content.encoding,
+                            content.historyUrl
+                        )
+                    }
+                }
+            }
+    }
+
     val currentOnDispose by rememberUpdatedState(onDispose)
 
-    webView?.let { it ->
+    webView?.let {
         DisposableEffect(it) {
             onDispose { currentOnDispose(it) }
         }
@@ -75,28 +102,26 @@ fun FWebView(
     client.navigator = navigator
     chromeClient.state = state
 
-    val runningInPreview = LocalInspectionMode.current
-
     BoxWithConstraints(modifier) {
+
+        // WebView changes it's layout strategy based on
+        // it's layoutParams. We convert from Compose Modifier to
+        // layout params here.
+        val width =
+            if (constraints.hasFixedWidth)
+                LayoutParams.MATCH_PARENT
+            else
+                LayoutParams.WRAP_CONTENT
+        val height =
+            if (constraints.hasFixedHeight)
+                LayoutParams.MATCH_PARENT
+            else
+                LayoutParams.WRAP_CONTENT
+
         AndroidView(
             factory = { context ->
-                (factory?.invoke(context) ?: WebView(context)).apply {
-                    FWebViewManager.initWebView(this)
+                val childView = (factory?.invoke(context) ?: WebView(context)).apply {
                     onCreated(this)
-
-                    // WebView changes it's layout strategy based on
-                    // it's layoutParams. We convert from Compose Modifier to
-                    // layout params here.
-                    val width =
-                        if (constraints.hasFixedWidth)
-                            LayoutParams.MATCH_PARENT
-                        else
-                            LayoutParams.WRAP_CONTENT
-                    val height =
-                        if (constraints.hasFixedHeight)
-                            LayoutParams.MATCH_PARENT
-                        else
-                            LayoutParams.WRAP_CONTENT
 
                     layoutParams = LayoutParams(
                         width,
@@ -106,30 +131,20 @@ fun FWebView(
                     webChromeClient = chromeClient
                     webViewClient = client
                 }.also { webView = it }
+
+                // Workaround a crash on certain devices that expect WebView to be
+                // wrapped in a ViewGroup.
+                // b/243567497
+                val parentLayout = FrameLayout(context)
+                parentLayout.layoutParams = LayoutParams(
+                    width,
+                    height
+                )
+                parentLayout.addView(childView)
+
+                parentLayout
             }
-        ) { view ->
-            // AndroidViews are not supported by preview, bail early
-            if (runningInPreview) return@AndroidView
-
-            state.content?.let { content ->
-                when (content) {
-                    is WebContent.Url -> {
-                        val url = content.url
-
-                        if (url.isNotEmpty() && url != view.url) {
-                            view.loadUrl(url, content.additionalHttpHeaders.toMutableMap())
-                        }
-                    }
-
-                    is WebContent.Data -> {
-                        view.loadDataWithBaseURL(content.baseUrl, content.data, null, "utf-8", null)
-                    }
-                }
-            }
-
-            navigator.canGoBack = view.canGoBack()
-            navigator.canGoForward = view.canGoForward()
-        }
+        )
     }
 }
 
@@ -153,33 +168,20 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
         state.errorsForCurrentRequest.clear()
         state.pageTitle = null
         state.pageIcon = null
+
+        state.lastLoadedUrl = url
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         state.loadingState = LoadingState.Finished
-        navigator.canGoBack = view?.canGoBack() ?: false
-        navigator.canGoForward = view?.canGoForward() ?: false
     }
 
-    override fun doUpdateVisitedHistory(
-        view: WebView?,
-        url: String?,
-        isReload: Boolean
-    ) {
+    override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
         super.doUpdateVisitedHistory(view, url, isReload)
-        // WebView will often update the current url itself.
-        // This happens in situations like redirects and navigating through
-        // history. We capture this change and update our state holder url.
-        // On older APIs (28 and lower), this method is called when loading
-        // html data. We don't want to update the state in this case as that will
-        // overwrite the html being loaded.
-        if (url != null && !url.startsWith("data:text/html")) {
-            val content = state.content
-            if (content != null && content.getCurrentUrl() != url) {
-                state.content = content.withUrl(url)
-            }
-        }
+
+        navigator.canGoBack = view?.canGoBack() ?: false
+        navigator.canGoForward = view?.canGoForward() ?: false
     }
 
     override fun onReceivedError(
@@ -189,25 +191,6 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
     ) {
         super.onReceivedError(view, request, error)
         state.errorsForCurrentRequest.add(WebViewError(request, error))
-    }
-
-    override fun shouldOverrideUrlLoading(
-        view: WebView,
-        request: WebResourceRequest
-    ): Boolean {
-        // If the url hasn't changed, this is probably an internal event like
-        // a javascript reload. We should let it happen.
-        if (view.url == request.url.toString()) {
-            return false
-        }
-
-        // Override all url loads to make the single source of truth
-        // of the URL the state holder Url
-        val content = state.content
-        if (content != null) {
-            state.content = content.withUrl(request.url.toString())
-        }
-        return true
     }
 }
 
@@ -246,19 +229,13 @@ sealed class WebContent {
         val additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) : WebContent()
 
-    data class Data(val data: String, val baseUrl: String? = null) : WebContent()
-
-    fun getCurrentUrl(): String? {
-        return when (this) {
-            is Url -> url
-            is Data -> baseUrl
-        }
-    }
-}
-
-internal fun WebContent.withUrl(url: String) = when (this) {
-    is WebContent.Url -> copy(url = url)
-    else -> WebContent.Url(url)
+    data class Data(
+        val data: String,
+        val baseUrl: String? = null,
+        val encoding: String = "utf-8",
+        val mimeType: String? = null,
+        val historyUrl: String? = null,
+    ) : WebContent()
 }
 
 /**
@@ -288,6 +265,9 @@ sealed class LoadingState {
  * using the rememberWebViewState(uri) function.
  */
 open class WebViewState {
+    var lastLoadedUrl by mutableStateOf<String?>(null)
+        internal set
+
     /**
      *  The content being loaded by the WebView
      */
@@ -328,18 +308,32 @@ open class WebViewState {
 
     fun loadUrl(
         url: String,
-        additionalHttpHeaders: Map<String, String>? = null,
+        additionalHttpHeaders: Map<String, String> = emptyMap(),
     ) {
-        val content = WebContent.Url(url, additionalHttpHeaders ?: emptyMap())
-        loadContent(content)
+        loadContent(
+            WebContent.Url(
+                url = url,
+                additionalHttpHeaders = additionalHttpHeaders,
+            )
+        )
     }
 
     fun loadDataWithBaseURL(
         data: String,
         baseUrl: String? = null,
+        encoding: String = "utf-8",
+        mimeType: String? = null,
+        historyUrl: String? = null,
     ) {
-        val content = WebContent.Data(data, baseUrl)
-        loadContent(content)
+        loadContent(
+            WebContent.Data(
+                data = data,
+                baseUrl = baseUrl,
+                encoding = encoding,
+                mimeType = mimeType,
+                historyUrl = historyUrl,
+            )
+        )
     }
 
     fun loadContent(content: WebContent) {
@@ -359,7 +353,12 @@ open class WebViewState {
 @Stable
 class WebViewNavigator(private val coroutineScope: CoroutineScope) {
 
-    private enum class NavigationEvent { BACK, FORWARD, RELOAD, STOP_LOADING }
+    private enum class NavigationEvent {
+        Back,
+        Forward,
+        Reload,
+        StopLoading,
+    }
 
     private val navigationEvents: MutableSharedFlow<NavigationEvent> = MutableSharedFlow()
 
@@ -367,10 +366,10 @@ class WebViewNavigator(private val coroutineScope: CoroutineScope) {
     internal suspend fun WebView.handleNavigationEvents(): Nothing = withContext(Dispatchers.Main) {
         navigationEvents.collect { event ->
             when (event) {
-                NavigationEvent.BACK -> goBack()
-                NavigationEvent.FORWARD -> goForward()
-                NavigationEvent.RELOAD -> reload()
-                NavigationEvent.STOP_LOADING -> stopLoading()
+                NavigationEvent.Back -> goBack()
+                NavigationEvent.Forward -> goForward()
+                NavigationEvent.Reload -> reload()
+                NavigationEvent.StopLoading -> stopLoading()
             }
         }
     }
@@ -391,28 +390,28 @@ class WebViewNavigator(private val coroutineScope: CoroutineScope) {
      * Navigates the webview back to the previous page.
      */
     fun navigateBack() {
-        coroutineScope.launch { navigationEvents.emit(NavigationEvent.BACK) }
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Back) }
     }
 
     /**
      * Navigates the webview forward after going back from a page.
      */
     fun navigateForward() {
-        coroutineScope.launch { navigationEvents.emit(NavigationEvent.FORWARD) }
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Forward) }
     }
 
     /**
      * Reloads the current page in the webview.
      */
     fun reload() {
-        coroutineScope.launch { navigationEvents.emit(NavigationEvent.RELOAD) }
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.Reload) }
     }
 
     /**
      * Stops the current page load (if one is loading).
      */
     fun stopLoading() {
-        coroutineScope.launch { navigationEvents.emit(NavigationEvent.STOP_LOADING) }
+        coroutineScope.launch { navigationEvents.emit(NavigationEvent.StopLoading) }
     }
 }
 
@@ -441,7 +440,9 @@ data class WebViewError(
 )
 
 @Composable
-fun rememberWebViewState(apply: (WebViewState.() -> Unit)? = null): WebViewState {
+fun rememberWebViewState(
+    apply: (WebViewState.() -> Unit)? = null
+): WebViewState {
     return remember {
         WebViewState().also {
             apply?.invoke(it)
