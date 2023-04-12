@@ -36,7 +36,9 @@ private fun WebView.initDefault() {
     }
 
     settings.run {
-        fSetScaleToShowAll(true)
+        // 设置是否把网页按比例缩放到刚好全部展示
+        useWideViewPort = true
+        loadWithOverviewMode = true
 
         setSupportZoom(true)
         builtInZoomControls = true
@@ -48,12 +50,4 @@ private fun WebView.initDefault() {
         databaseEnabled = true
         cacheMode = WebSettings.LOAD_NO_CACHE
     }
-}
-
-/**
- * 设置是否把网页按比例缩放到刚好全部展示
- */
-private fun WebSettings.fSetScaleToShowAll(value: Boolean) {
-    useWideViewPort = value
-    loadWithOverviewMode = value
 }
