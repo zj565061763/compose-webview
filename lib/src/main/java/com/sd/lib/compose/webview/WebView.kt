@@ -121,6 +121,7 @@ fun FWebView(
         AndroidView(
             factory = { context ->
                 val childView = (factory?.invoke(context) ?: WebView(context)).apply {
+                    FWebViewManager.initWebView(this)
                     onCreated(this)
 
                     layoutParams = LayoutParams(
