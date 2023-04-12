@@ -3,6 +3,7 @@ package com.sd.lib.compose.webview
 import android.webkit.ValueCallback
 import android.webkit.WebView
 
+@JvmOverloads
 fun WebView.fJsFunction(
     function: String,
     params: Array<Any?> = arrayOf(),
