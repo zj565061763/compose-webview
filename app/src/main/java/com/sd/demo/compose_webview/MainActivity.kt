@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Content() {
     val state = rememberWebViewState {
-        loadUrl("https://www.baidu.com")
+        it.loadUrl("https://www.baidu.com")
     }
 
     Scaffold(

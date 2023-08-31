@@ -520,11 +520,11 @@ data class WebViewError(
 
 @Composable
 fun rememberWebViewState(
-    apply: (WebViewState.() -> Unit)? = null
+    onCreate: ((WebViewState) -> Unit)? = null
 ): WebViewState {
     return remember {
         WebViewState().also {
-            apply?.invoke(it)
+            onCreate?.invoke(it)
         }
     }
 }
