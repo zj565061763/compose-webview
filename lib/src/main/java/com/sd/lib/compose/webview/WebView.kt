@@ -34,6 +34,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -527,4 +530,39 @@ fun rememberWebViewState(
             onCreate?.invoke(it)
         }
     }
+}
+
+@Composable
+private fun rememberSaveableWebViewState(
+    onCreate: ((WebViewState) -> Unit)? = null
+): WebViewState {
+    return rememberSaveable(saver = WebStateSaver) {
+        WebViewState().also {
+            onCreate?.invoke(it)
+        }
+    }
+}
+
+private val WebStateSaver: Saver<WebViewState, Any> = run {
+    val pageTitleKey = "pageTitleKey"
+    val lastLoadedUrlKey = "lastLoadedUrlKey"
+    val viewStateKey = "viewStateKey"
+
+    mapSaver(
+        save = {
+            val viewState = Bundle().apply { it.webView?.saveState(this) }
+            mapOf(
+                pageTitleKey to it.pageTitle,
+                lastLoadedUrlKey to it.lastLoadedUrl,
+                viewStateKey to viewState
+            )
+        },
+        restore = {
+            WebViewState().apply {
+                this.pageTitle = it[pageTitleKey] as String?
+                this.lastLoadedUrl = it[lastLoadedUrlKey] as String?
+                this.viewState = it[viewStateKey] as Bundle?
+            }
+        }
+    )
 }
