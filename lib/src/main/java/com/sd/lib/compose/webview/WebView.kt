@@ -25,7 +25,19 @@ import android.webkit.WebView
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -261,12 +273,8 @@ sealed class LoadingState {
     object Finished : LoadingState()
 }
 
-/**
- * A state holder to hold the state for the WebView. In most cases this will be remembered
- * using the rememberWebViewState(uri) function.
- */
-open class WebViewState {
-    var lastLoadedUrl by mutableStateOf<String?>(null)
+class WebViewState {
+    var lastLoadedUrl: String? by mutableStateOf(null)
         internal set
 
     /**
