@@ -96,6 +96,13 @@ fun FWebView(
                             content.historyUrl
                         )
                     }
+
+                    is WebContent.Post -> {
+                        webView?.postUrl(
+                            content.url,
+                            content.postData
+                        )
+                    }
                 }
             }
     }
@@ -250,6 +257,29 @@ sealed class WebContent {
         val mimeType: String? = null,
         val historyUrl: String? = null,
     ) : WebContent()
+
+    data class Post(
+        val url: String,
+        val postData: ByteArray,
+    ) : WebContent() {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Post
+
+            if (url != other.url) return false
+            if (!postData.contentEquals(other.postData)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = url.hashCode()
+            result = 31 * result + postData.contentHashCode()
+            return result
+        }
+    }
 }
 
 /**
@@ -358,9 +388,23 @@ class WebViewState {
         )
     }
 
+    fun postUrl(
+        url: String,
+        postData: ByteArray,
+    ) {
+        loadContent(
+            WebContent.Post(
+                url = url,
+                postData = postData,
+            )
+        )
+    }
+
     fun loadContent(content: WebContent) {
-        if (content is WebContent.Url) {
-            FWebViewManager.syncHttpClientCookieToWebView(content.url)
+        when (content) {
+            is WebContent.Url -> FWebViewManager.syncHttpClientCookieToWebView(content.url)
+            is WebContent.Post -> FWebViewManager.syncHttpClientCookieToWebView(content.url)
+            else -> {}
         }
         this.content = content
     }
