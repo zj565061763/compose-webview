@@ -17,8 +17,8 @@ import com.sd.lib.compose.webview.core.logMsg
 import java.lang.ref.WeakReference
 
 open class FWebViewClient : AccompanistWebViewClient() {
-    private var _context: WeakReference<Context>? = null
-    private val context: Context? get() = _context?.get()
+    private var _contextRef: WeakReference<Context>? = null
+    private val context: Context? get() = _contextRef?.get()
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         saveContext(view.context)
@@ -62,8 +62,8 @@ open class FWebViewClient : AccompanistWebViewClient() {
 
     private fun saveContext(context: Context?) {
         if (context == null) return
-        if (_context?.get() !== context) {
-            _context = WeakReference(context)
+        if (_contextRef?.get() !== context) {
+            _contextRef = WeakReference(context)
         }
     }
 
