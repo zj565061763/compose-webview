@@ -196,9 +196,9 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
     lateinit var navigator: WebViewNavigator
         internal set
 
-    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+    override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
-        state.loadingState = LoadingState.Loading(0.0f)
+        state.loadingState = Loading(0.0f)
         state.errorsForCurrentRequest.clear()
         state.pageTitle = null
         state.pageIcon = null
@@ -206,16 +206,16 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
         state.lastLoadedUrl = url
     }
 
-    override fun onPageFinished(view: WebView?, url: String?) {
+    override fun onPageFinished(view: WebView, url: String?) {
         super.onPageFinished(view, url)
         state.loadingState = Finished
     }
 
-    override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+    override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
         super.doUpdateVisitedHistory(view, url, isReload)
 
-        navigator.canGoBack = view?.canGoBack() ?: false
-        navigator.canGoForward = view?.canGoForward() ?: false
+        navigator.canGoBack = view.canGoBack()
+        navigator.canGoForward = view.canGoForward()
     }
 
     override fun onReceivedError(
@@ -253,7 +253,7 @@ open class AccompanistWebChromeClient internal constructor() : WebChromeClient()
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
         super.onProgressChanged(view, newProgress)
         if (state.loadingState is Finished) return
-        state.loadingState = LoadingState.Loading(newProgress / 100.0f)
+        state.loadingState = Loading(newProgress / 100.0f)
     }
 }
 
