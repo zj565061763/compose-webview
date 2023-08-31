@@ -19,15 +19,13 @@ package com.sd.lib.compose.webview
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.view.ViewGroup.LayoutParams
+import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -36,7 +34,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -66,52 +63,92 @@ fun FWebView(
     chromeClient: FWebChromeClient = remember { FWebChromeClient() },
     factory: ((Context) -> WebView)? = null
 ) {
-    var webView by remember { mutableStateOf<WebView?>(null) }
+    BoxWithConstraints(modifier) {
+        // WebView changes it's layout strategy based on
+        // it's layoutParams. We convert from Compose Modifier to
+        // layout params here.
+        val width =
+            if (constraints.hasFixedWidth)
+                ViewGroup.LayoutParams.MATCH_PARENT
+            else
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        val height =
+            if (constraints.hasFixedHeight)
+                ViewGroup.LayoutParams.MATCH_PARENT
+            else
+                ViewGroup.LayoutParams.WRAP_CONTENT
 
-    BackHandler(captureBackPresses && navigator.canGoBack) {
-        webView?.goBack()
+        val layoutParams = ViewGroup.LayoutParams(
+            width,
+            height
+        )
+
+        FWebView(
+            state = state,
+            layoutParams = layoutParams,
+            modifier = Modifier,
+            captureBackPresses = captureBackPresses,
+            navigator = navigator,
+            onCreated = onCreated,
+            onDispose = onDispose,
+            client = client,
+            chromeClient = chromeClient,
+            factory = factory,
+        )
     }
+}
 
-    LaunchedEffect(webView, navigator) {
-        with(navigator) { webView?.handleNavigationEvents() }
-    }
+@Composable
+fun FWebView(
+    state: WebViewState,
+    layoutParams: ViewGroup.LayoutParams,
+    modifier: Modifier = Modifier,
+    captureBackPresses: Boolean = true,
+    navigator: WebViewNavigator = rememberWebViewNavigator(),
+    onCreated: (WebView) -> Unit = {},
+    onDispose: (WebView) -> Unit = {},
+    client: FWebViewClient = remember { FWebViewClient() },
+    chromeClient: FWebChromeClient = remember { FWebChromeClient() },
+    factory: ((Context) -> WebView)? = null
+) {
+    state.webView?.let { wv ->
+        BackHandler(captureBackPresses && navigator.canGoBack) {
+            wv.goBack()
+        }
 
-    LaunchedEffect(webView, state) {
-        if (webView == null) return@LaunchedEffect
+        LaunchedEffect(wv, navigator) {
+            with(navigator) {
+                wv.handleNavigationEvents()
+            }
+        }
 
-        snapshotFlow { state.content }
-            .filterNotNull()
-            .collect { content ->
-                when (content) {
-                    is WebContent.Url -> {
-                        webView?.loadUrl(content.url, content.additionalHttpHeaders)
-                    }
+        LaunchedEffect(wv, state) {
+            snapshotFlow { state.content }
+                .filterNotNull()
+                .collect { content ->
+                    when (content) {
+                        is WebContent.Url -> {
+                            wv.loadUrl(content.url, content.additionalHttpHeaders)
+                        }
 
-                    is WebContent.Data -> {
-                        webView?.loadDataWithBaseURL(
-                            content.baseUrl,
-                            content.data,
-                            content.mimeType,
-                            content.encoding,
-                            content.historyUrl
-                        )
-                    }
+                        is WebContent.Data -> {
+                            wv.loadDataWithBaseURL(
+                                content.baseUrl,
+                                content.data,
+                                content.mimeType,
+                                content.encoding,
+                                content.historyUrl
+                            )
+                        }
 
-                    is WebContent.Post -> {
-                        webView?.postUrl(
-                            content.url,
-                            content.postData
-                        )
+                        is WebContent.Post -> {
+                            wv.postUrl(
+                                content.url,
+                                content.postData
+                            )
+                        }
                     }
                 }
-            }
-    }
-
-    val currentOnDispose by rememberUpdatedState(onDispose)
-
-    webView?.let {
-        DisposableEffect(it) {
-            onDispose { currentOnDispose(it) }
         }
     }
 
@@ -122,51 +159,27 @@ fun FWebView(
     client.navigator = navigator
     chromeClient.state = state
 
-    BoxWithConstraints(modifier) {
+    AndroidView(
+        factory = { context ->
+            (factory?.invoke(context) ?: WebView(context)).apply {
+                FWebViewManager.initWebView(this)
+                onCreated(this)
 
-        // WebView changes it's layout strategy based on
-        // it's layoutParams. We convert from Compose Modifier to
-        // layout params here.
-        val width =
-            if (constraints.hasFixedWidth)
-                LayoutParams.MATCH_PARENT
-            else
-                LayoutParams.WRAP_CONTENT
-        val height =
-            if (constraints.hasFixedHeight)
-                LayoutParams.MATCH_PARENT
-            else
-                LayoutParams.WRAP_CONTENT
+                this.layoutParams = layoutParams
 
-        AndroidView(
-            factory = { context ->
-                val childView = (factory?.invoke(context) ?: WebView(context)).apply {
-                    FWebViewManager.initWebView(this)
-                    onCreated(this)
+                state.viewState?.let {
+                    this.restoreState(it)
+                }
 
-                    layoutParams = LayoutParams(
-                        width,
-                        height
-                    )
-
-                    webChromeClient = chromeClient
-                    webViewClient = client
-                }.also { webView = it }
-
-                // Workaround a crash on certain devices that expect WebView to be
-                // wrapped in a ViewGroup.
-                // b/243567497
-                val parentLayout = FrameLayout(context)
-                parentLayout.layoutParams = LayoutParams(
-                    width,
-                    height
-                )
-                parentLayout.addView(childView)
-
-                parentLayout
-            }
-        )
-    }
+                webChromeClient = chromeClient
+                webViewClient = client
+            }.also { state.webView = it }
+        },
+        modifier = modifier,
+        onRelease = {
+            onDispose(it)
+        }
+    )
 }
 
 /**
