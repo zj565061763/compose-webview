@@ -187,7 +187,7 @@ open class AccompanistWebViewClient internal constructor() : WebViewClientCompat
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        state.loadingState = LoadingState.Finished
+        state.loadingState = Finished
     }
 
     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
@@ -231,7 +231,7 @@ open class AccompanistWebChromeClient internal constructor() : WebChromeClient()
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
         super.onProgressChanged(view, newProgress)
-        if (state.loadingState is LoadingState.Finished) return
+        if (state.loadingState is Finished) return
         state.loadingState = LoadingState.Loading(newProgress / 100.0f)
     }
 }
@@ -294,7 +294,7 @@ class WebViewState {
      * Whether the webview is currently loading data in its main frame
      */
     val isLoading: Boolean
-        get() = loadingState !is LoadingState.Finished
+        get() = loadingState !is Finished
 
     /**
      * The title received from the loaded content of the current page
