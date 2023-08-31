@@ -18,6 +18,7 @@ package com.sd.lib.compose.webview
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Bundle
 import android.view.ViewGroup.LayoutParams
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -314,6 +315,18 @@ class WebViewState {
      * For more fine grained control use the OnError callback of the WebView.
      */
     val errorsForCurrentRequest: SnapshotStateList<WebViewError> = mutableStateListOf()
+
+    /**
+     * The saved view state from when the view was destroyed last. To restore state,
+     * use the navigator and only call loadUrl if the bundle is null.
+     * See WebViewSaveStateSample.
+     */
+    var viewState: Bundle? = null
+        internal set
+
+    // We need access to this in the state saver. An internal DisposableEffect or AndroidView
+    // onDestroy is called after the state saver and so can't be used.
+    internal var webView by mutableStateOf<WebView?>(null)
 
     fun loadUrl(
         url: String,
