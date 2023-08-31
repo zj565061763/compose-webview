@@ -240,17 +240,17 @@ open class AccompanistWebChromeClient internal constructor() : WebChromeClient()
     lateinit var state: WebViewState
         internal set
 
-    override fun onReceivedTitle(view: WebView?, title: String?) {
+    override fun onReceivedTitle(view: WebView, title: String?) {
         super.onReceivedTitle(view, title)
         state.pageTitle = title
     }
 
-    override fun onReceivedIcon(view: WebView?, icon: Bitmap?) {
+    override fun onReceivedIcon(view: WebView, icon: Bitmap?) {
         super.onReceivedIcon(view, icon)
         state.pageIcon = icon
     }
 
-    override fun onProgressChanged(view: WebView?, newProgress: Int) {
+    override fun onProgressChanged(view: WebView, newProgress: Int) {
         super.onProgressChanged(view, newProgress)
         if (state.loadingState is Finished) return
         state.loadingState = Loading(newProgress / 100.0f)
