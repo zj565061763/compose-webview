@@ -36,18 +36,18 @@ open class FWebViewClient : AccompanistWebViewClient() {
         return startUrl(url)
     }
 
-    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+    override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
         logMsg { "onPageStarted url:$url" }
     }
 
-    override fun onPageFinished(view: WebView?, url: String?) {
+    override fun onPageFinished(view: WebView, url: String?) {
         super.onPageFinished(view, url)
         logMsg { "onPageFinished url:$url" }
         FWebViewManager.syncWebViewCookieToHttpClient(url)
     }
 
-    override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+    override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
         logMsg { "doUpdateVisitedHistory url:$url" }
         super.doUpdateVisitedHistory(view, url, isReload)
     }

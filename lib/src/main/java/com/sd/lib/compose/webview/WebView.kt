@@ -511,7 +511,7 @@ data class WebViewError(
     /**
      * The request the error came from.
      */
-    val request: WebResourceRequest?,
+    val request: WebResourceRequest,
     /**
      * The error that was reported.
      */
