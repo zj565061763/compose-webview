@@ -308,7 +308,7 @@ sealed class LoadingState {
     /**
      * Describes a WebView that has not yet loaded for the first time.
      */
-    object Initializing : LoadingState()
+    data object Initializing : LoadingState()
 
     /**
      * Describes a webview between `onPageStarted` and `onPageFinished` events, contains a
@@ -319,7 +319,7 @@ sealed class LoadingState {
     /**
      * Describes a webview that has finished loading content.
      */
-    object Finished : LoadingState()
+    data object Finished : LoadingState()
 }
 
 class WebViewState {
