@@ -114,11 +114,13 @@ fun FWebView(
     chromeClient: FWebChromeClient = remember { FWebChromeClient() },
     factory: ((Context) -> WebView)? = null
 ) {
-    state.webView?.let { wv ->
-        BackHandler(captureBackPresses && navigator.canGoBack) {
-            wv.goBack()
-        }
+    val webView = state.webView
 
+    BackHandler(captureBackPresses && navigator.canGoBack) {
+        webView?.goBack()
+    }
+
+    webView?.let { wv ->
         LaunchedEffect(wv, navigator) {
             with(navigator) {
                 wv.handleNavigationEvents()
