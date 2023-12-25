@@ -56,8 +56,8 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun FWebView(
-    state: WebViewState,
     modifier: Modifier = Modifier,
+    state: WebViewState,
     captureBackPresses: Boolean = true,
     navigator: WebViewNavigator = rememberWebViewNavigator(),
     onCreated: (WebView) -> Unit = {},
@@ -103,9 +103,9 @@ fun FWebView(
 
 @Composable
 fun FWebView(
+    modifier: Modifier = Modifier,
     state: WebViewState,
     layoutParams: ViewGroup.LayoutParams,
-    modifier: Modifier = Modifier,
     captureBackPresses: Boolean = true,
     navigator: WebViewNavigator = rememberWebViewNavigator(),
     onCreated: (WebView) -> Unit = {},
